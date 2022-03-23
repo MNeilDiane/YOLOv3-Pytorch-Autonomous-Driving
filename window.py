@@ -1,4 +1,3 @@
-#this file will new a window 
 import os
 import sys
 import time
@@ -8,20 +7,47 @@ import tkinter as tk
 from tkinter import *
 from PIL import Image, ImageTk
 from tkinter import filedialog
-
-
 from yolo import YOLO
-import tkinter.messagebox
+from PIL import ImageDraw, ImageFont
 
+
+yolo=YOLO()
+test_interval=100
 win = tk.Tk()
 win.title('基于YOLO的自动驾驶目标检测程序')
 win.geometry('800x600')
 win.resizable(False,False)
+'''
+get_image 是对图片大小进行变换，便于设置背景图片
+'''
+
 def get_image(filename,width,height):
     im = Image.open(filename).resize((width, height))
     return ImageTk.PhotoImage(im)
+'''
+image_detection()是进行单个图片检测的程序
+'''
+def image_detection():
+
+    file = filedialog.askopenfilename()
+    while True:
+        img = file
+        try:
+            image = Image.open(img)
+        except:
+            print('Open Error! Try again!')
+            continue
+        else:
+            r_image = yolo.detect_image(image)
+            r_image.show()
+            r_image.save("img.jpg")
+            print('Successfully saved!')
+            cv2.imshow(r_image)
+'''
+video_detection是进行视频的目标检测程序
+'''
 def video_detection():
-    yolo = YOLO()
+
     print('进行视频图像目标检测')
     file = filedialog.askopenfilename()
     print("path:", file)
@@ -29,7 +55,6 @@ def video_detection():
     video_path = file
     video_save_path = ""
     video_fps = 25.0
-    test_interval = 100
     capture = cv2.VideoCapture(video_path)
     fourcc = cv2.VideoWriter_fourcc(*'XVID')
     size = (int(capture.get(cv2.CAP_PROP_FRAME_WIDTH)), int(capture.get(cv2.CAP_PROP_FRAME_HEIGHT)))
@@ -57,6 +82,7 @@ def video_detection():
 
         fps = (fps + (1. / (time.time() - t1))) / 2
         print("fps= %.2f" % (fps))
+        #entry1.insert(END, label)
         frame = cv2.putText(frame, "fps= %.2f" % (fps), (0, 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
         cv2.imshow("video", frame)
@@ -75,34 +101,34 @@ def video_detection():
         out.release()
     cv2.destroyAllWindows()
 
-
+'''
+camera_detection 会调用vision.py
+这个程序是使用Basler相机进行实时目标检测的程序
+'''
 
 def camera_detection():
     print('进行摄像头实时目标检测')
     os.system('python vision.py')
-def image_detection():
-    yolo = YOLO()
-    file = filedialog.askopenfilename()
-    while True:
-        img = file
-        try:
-            image = Image.open(img)
-        except:
-            print('Open Error! Try again!')
-            continue
-        else:
-            r_image = yolo.detect_image(image)
-            r_image.show()
-            r_image.save("img.jpg")
-            print('Successfully saved!')
-            cv2.imshow(r_image)
+'''
+进行fps测试，检测机器性能
+'''
+def fps_text():
+    img = Image.open('img/street.jpg')
+    tact_time = yolo.get_FPS(img, test_interval)
+    print(str(tact_time) + ' seconds, ' + str(1 / tact_time) + 'FPS, @batch_size 1')
+    entry1.delete(0, END)
+    entry1.insert(END, str(1 / tact_time) + 'FPS')
+
+
 def exit():
     sys.exit()
 
 canvas_root = tk.Canvas(win,width=800, height=600)
-im_root = get_image("photo.png", 800, 600)
+im_root = get_image("photo.jpg", 800, 600)
 canvas_root.create_image(400, 300, image=im_root)
 canvas_root.pack()
+entry1 = tk.Entry(win, justify='left', bg='#d3fbfb')
+entry1.place(x=3, y=400, width=200, height=200)
 
 Button0 = tk.Button(win, text='图片检测', font=('宋体', 12, 'bold italic'), bg='#d3fbfb', fg='blue',
                     width=10, height=3, relief=RAISED, command=lambda :image_detection())
@@ -113,8 +139,11 @@ Button1.place(x=3, y=43, width=100, height=40)
 Button2 = tk.Button(win, text='摄像头检测', font=('宋体', 12, 'bold italic'), bg='#d3fbfb', fg='blue',
                     width=10, height=3, relief=RAISED, command=lambda:camera_detection())
 Button2.place(x=3, y=83, width=100, height=40)
-
+Button4 = tk.Button(win, text='FPS测试', font=('宋体', 12, 'bold italic'),bg='yellow',
+                    width=10, height=3, relief=RAISED, command=lambda:fps_text())
+Button4.place(x=3, y=123, width=100, height=40)
 Button3 = tk.Button(win, text='退出程序', font=('宋体', 12, 'bold italic'),bg='red',
                     width=10, height=3, relief=RAISED, command=lambda:exit())
-Button3.place(x=3, y=123, width=100, height=40)
+Button3.place(x=3, y=163, width=100, height=40)
+
 win.mainloop()
